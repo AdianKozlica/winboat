@@ -107,7 +107,7 @@
             <x-label class="text-neutral-300">Apps</x-label>
             <div class="flex flex-row gap-2 justify-center items-center">
                 <!-- Refresh button -->
-                <x-button class="flex flex-row gap-1 items-center" @click="refreshApps">
+                <x-button class="flex flex-row gap-1 items-center" @click="() => refreshApps(true)">
                     <Icon icon="mdi:refresh" class="size-4"></Icon>
                     <x-label>Refresh</x-label>
                 </x-button>
@@ -175,7 +175,7 @@
         </div>
         <div v-if="winboat.isOnline.value" class="px-2">
             <TransitionGroup
-                v-if="apps.length"
+                v-if="apps.length && !refreshing"
                 name="apps"
                 tag="x-card"
                 class="grid gap-4 bg-transparent border-none app-grid"
@@ -274,6 +274,7 @@ const currentAppForm = ref<WinApp>({
     Icon: "",
     Source: "",
 });
+const refreshing = ref(false);
 
 const AllSources = computed(() => {
     let sourceList: Record<string, string> = {};
@@ -331,15 +332,19 @@ onMounted(async () => {
     window.addEventListener("resize", onScroll);
 });
 
-async function refreshApps() {
+async function refreshApps(spinner = false) {
     if (winboat.isOnline.value) {
         const loadedApps = await winboat.appMgr!.getApps(winboat.apiUrl!);
         apps.value = loadedApps.map(app => ({
             ...app,
             id: crypto.randomUUID(),
         }));
+        if (spinner) {
+            refreshing.value = true;
+        }
         // Run in background, won't impact UX
         await winboat.appMgr!.updateAppCache(winboat.apiUrl!);
+        refreshing.value = false;
     }
 }
 
